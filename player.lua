@@ -1,7 +1,6 @@
 function create_player(x, y)
     player = {}
     player.position = { x = x, y = y }
-    player.target = { x = 0, y = 0}
     player.orientation = 0
     player.radius = 16
     player.speed = 300
@@ -10,13 +9,26 @@ function create_player(x, y)
     player.is_firing = false
     player.limits = { x = World.Width / 2 - player.radius, y = World.Height / 2 - player.radius }
 
-    player.update = function(self, dt)
-        local movex = Input:getAxis("horizontal") * self.speed * dt
-        local movey = Input:getAxis("vertical") * self.speed * dt
+    player.input = {}
+    player.input.buttons = {}
+    player.input.axes = {}
 
-        local mousex, mousey = love.mouse.getPosition()
-        self.target.x = mousex + Camera.position.x
-        self.target.y = mousey + Camera.position.y
+    player.input.buttons.fire = false
+    player.input.axes.horizontal = 0
+    player.input.axes.vertical = 0
+    player.input.axes.hlook = 0
+    player.input.axes.vlook = 0
+
+    player.getButton = function(self, name) return player.input.buttons[name] end
+    player.getAxis = function(self, name) return player.input.axes[name] end
+
+    player.controller = nil
+
+    player.update = function(self, dt)
+        if self.controller ~= nil then self.controller:update(dt) end
+
+        local movex = self:getAxis("horizontal") * self.speed * dt
+        local movey = self:getAxis("vertical") * self.speed * dt
 
         self.position.x = self.position.x + movex
         self.position.y = self.position.y + movey
@@ -26,7 +38,7 @@ function create_player(x, y)
         if self.position.y < -self.limits.y then self.position.y = -self.limits.y end
         if self.position.y > self.limits.y then self.position.y = self.limits.y end
 
-        self.orientation = math.deg(math.atan2(self.target.y - self.position.y, self.target.x - self.position.x))
+        self.orientation = math.deg(math.atan2(self:getAxis("vlook"), self:getAxis("hlook")))
 
         if Input:getButton("fire") then
             if self.fire_timer <= 0 then
@@ -60,4 +72,30 @@ function create_player(x, y)
     end
 
     return player
+end
+
+function create_player_controller(player)
+    controller = {}
+    controller.player = player
+    controller.player.controller = controller
+
+    controller.update = function(dt)
+        player.input.buttons.fire = Input:getButton("fire")
+        player.input.axes.horizontal = Input:getAxis("horizontal")
+        player.input.axes.vertical = Input:getAxis("vertical")
+
+        local mousex, mousey = love.mouse.getPosition()
+        mousex = mousex / SCREEN_WIDTH * 2 - 1
+        mousey = mousey / SCREEN_HEIGHT * 2 - 1
+        player.input.axes.hlook = mousex
+        player.input.axes.vlook = mousey
+    end
+
+    return controller
+end
+
+function create_player_recording_controller(player, recording)
+    controller = {}
+
+    return controller
 end

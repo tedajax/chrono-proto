@@ -9,6 +9,7 @@ function love.load(arg)
     World.Height = 1000
 
     player = create_player(0, 0)
+    player_controller = create_player_controller(player)
 
     Input = init_input()
     Bullets = create_bullet_manager(100)
