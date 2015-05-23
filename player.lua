@@ -8,13 +8,23 @@ function create_player(x, y)
     player.fire_delay = 0.1
     player.fire_timer = 0
     player.is_firing = false
+    player.limits = { x = World.Width / 2 - player.radius, y = World.Height / 2 - player.radius }
 
     player.update = function(self, dt)
         local movex = Input:getAxis("horizontal") * self.speed * dt
         local movey = Input:getAxis("vertical") * self.speed * dt
 
+        local mousex, mousey = love.mouse.getPosition()
+        self.target.x = mousex + Camera.position.x
+        self.target.y = mousey + Camera.position.y
+
         self.position.x = self.position.x + movex
         self.position.y = self.position.y + movey
+
+        if self.position.x < -self.limits.x then self.position.x = -self.limits.x end
+        if self.position.x > self.limits.x then self.position.x = self.limits.x end
+        if self.position.y < -self.limits.y then self.position.y = -self.limits.y end
+        if self.position.y > self.limits.y then self.position.y = self.limits.y end
 
         self.orientation = math.deg(math.atan2(self.target.y - self.position.y, self.target.x - self.position.x))
 

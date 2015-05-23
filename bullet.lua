@@ -13,6 +13,8 @@ function create_bullet(index)
     bullet.active = false
     bullet.index = index
     bullet.destroy_flag = false
+    bullet.radius = 4
+    bullet.limits = { x = World.Width / 2 - bullet.radius, y = World.Height / 2 - bullet.radius }
 
     bullet.activate = function(self, type, x, y, angle)
         self.type = type
@@ -20,7 +22,6 @@ function create_bullet(index)
         self.position.y = y
         self.angle = angle
         self.active = true
-        self.index = index
         self.destroy_flag = false
     end
 
@@ -30,7 +31,6 @@ function create_bullet(index)
         self.position.y = 0
         self.angle = 0
         self.active = false
-        self.index = 0
         self.destroy_flag = false
     end
 
@@ -39,14 +39,15 @@ function create_bullet(index)
         self.position.x = self.position.x + velocity.x * self.speed * dt
         self.position.y = self.position.y + velocity.y * self.speed * dt
 
-        if not Camera:can_see(self.position.x, self.position.y) then
+        if self.position.x < -self.limits.x or self.position.x > self.limits.x or
+           self.position.y < -self.limits.y or self.position.y > self.limits.y then
             self.destroy_flag = true
         end
     end
 
     bullet.render = function(self, dt)
         love.graphics.setColor(255, 255, 255)
-        love.graphics.circle("fill", self.position.x, self.position.y, 4, 11)
+        love.graphics.circle("fill", self.position.x, self.position.y, self.radius, 11)
     end
 
     return bullet
@@ -63,32 +64,38 @@ function create_bullet_manager(capacity)
     end
     manager.free_head = capacity
 
-    manager.next_index = function(self)
+    manager.pop_index = function(self)
         assert(self.free_head > 1, "No more free spaces, increase capacity.")
         local result = self.free_indices[self.free_head]
         self.free_head = self.free_head - 1
         return result
     end
 
+    manager.push_index = function(self, index)
+        self.free_head = self.free_head + 1
+        self.free_indices[self.free_head] = index
+    end
+
     manager.add = function(self, type, x, y, angle)
-        local index = self:next_index()
+        local index = self:pop_index()
         self.bullets[index]:activate(type, x, y, angle)
     end
 
     manager.remove = function(self, bullet)
         self.bullets[bullet.index]:reset()
-        table.insert(self.free_indices, bullet.index)
-        self.free_head = self.free_head + 1
+        self:push_index(bullet.index)
     end
 
     manager.update = function(self, dt)
         for i = 1, self.capacity do
+            if self.bullets[i].active and self.bullets[i].destroy_flag then
+                self:remove(self.bullets[i])
+            end
+        end
+
+        for i = 1, self.capacity do
             if self.bullets[i].active then
                 self.bullets[i]:update(dt)
-
-                if self.bullets[i].destroy_flag then
-                    self:remove(self.bullets[i])
-                end
             end
         end
     end
