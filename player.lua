@@ -96,6 +96,54 @@ end
 
 function create_player_recording_controller(player, recording)
     controller = {}
+    controller.player = player
+    controller.player.controller = controller
+    controller.recording = recording
+
+    controller.action_player = create_action_player(recording, controller)
+
+    controller.buttons = {}
+    controller.buttons.left = false
+    controller.buttons.right = false
+    controller.buttons.up = false
+    controller.buttons.down = false
+    controller.buttons.fire = false
+
+    controller.start = function(self)
+        self.player:start()
+    end
+
+    controller.update = function(self, dt)
+        self.action_player:update(dt)
+
+        local hmove, vmove = 0, 0
+        if self.buttons.left then hmove = hmove - 1 end
+        if self.buttons.right then hmove = hmove + 1 end
+        if self.buttons.up then hmove = vmove - 1 end
+        if self.buttons.down then hmove = vmove + 1 end
+
+        self.player.input.axes.horizontal = hmove
+        self.player.input.axes.vertical = vmove
+        self.player.input.buttons.fire = self.buttons.fire
+    end
+
+    controller.receive_action = function(self, action)
+        if action.action_type == Action.MOVE_LEFT then
+            self.buttons.left = action.state
+        elseif action.button_type == Action.MOVE_RIGHT then
+            self.buttons.right = action.state
+        elseif action.button_type == Action.MOVE_UP then
+            self.buttons.up = action.state
+        elseif action.button_type == Action.MOVE_DOWN then
+            self.buttons.down = action.state
+        elseif action.button_type == Action.FIRE then
+            self.buttons.fire = action.state
+        elseif action.button_type == Action.STOP then
+            for b, s in pairs(self.buttons) do
+                self.buttons[b] = false
+            end
+        end
+    end
 
     return controller
 end
