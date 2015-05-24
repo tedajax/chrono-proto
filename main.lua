@@ -2,38 +2,7 @@ require 'camera'
 require 'bullet'
 require 'player'
 require 'input'
-require 'action'
-
-function on_button_changed(name, state)
-    if name == "fire" then
-        Recorder:add_action(Action.Fire, state)
-    end
-end
-
-function on_axis_changed(name, value)
-    local a1 = Action.STOP
-    local a2 = Action.STOP
-
-    if name == "horizontal" then
-        a1 = Action.MOVE_RIGHT
-        a2 = Action.MOVE_LEFT
-    elseif name == "vertical" then
-        a1 = Action.MOVE_DOWN
-        a2 = Action.MOVE_UP
-    end
-
-    print("value: "..value)
-    if value > 0 then
-        Recorder:add_action(a1, true)
-        Recorder:add_action(a2, false)
-    elseif value < 0 then
-        Recorder:add_action(a1, false)
-        Recorder:add_action(a2, true)
-    else
-        Recorder:add_action(a1, false)
-        Recorder:add_action(a2, false)
-    end
-end
+require 'recording'
 
 function love.load(arg)
     World = {}
@@ -42,9 +11,9 @@ function love.load(arg)
 
     player = create_player(0, 0)
     player_controller = create_player_controller(player)
-    Recorder = create_action_recorder()
+    Recorder = create_recording()
 
-    recorded_players = {}
+    RecordedPlayers = {}
 
     Input = init_input()
     Input.button_changed = on_button_changed
@@ -63,9 +32,12 @@ function love.keypressed(key, is_repeat)
         love.event.quit()
     elseif key == "r" then
         local recorded = create_player(0, 0)
-        table.insert(recorded_players, recorded)
+        for i, p in ipairs(RecordedPlayers) do
+            p:reset()
+        end
+        table.insert(RecordedPlayers, recorded)
         local recorded_controller = create_player_recording_controller(recorded, Recorder)
-        recorded_controller:start()
+        Recorder:reset()
         player:reset()
     end
 end
@@ -73,8 +45,12 @@ end
 function love.update(dt)
     Recorder:update(dt)
     Input:update(dt)
+    if Input.changed_this_frame then
+        Recorder:add_snapshot(create_input_snapshot(Input))
+    end
+
     player:update(dt)
-    for i, p in ipairs(recorded_players) do
+    for i, p in ipairs(RecordedPlayers) do
         p:update(dt)
     end
     Bullets:update(dt)
@@ -104,7 +80,7 @@ function love.draw(dt)
     render_background(World.Width, World.Height, 10)
 
     player:render(dt)
-    for i, p in ipairs(recorded_players) do
+    for i, p in ipairs(RecordedPlayers) do
         p:render(dt)
     end
     Bullets:render(dt)
@@ -112,4 +88,6 @@ function love.draw(dt)
 
     love.graphics.setColor(0, 255, 0)
     love.graphics.print("FPS : "..tostring(love.timer.getFPS()), 5, 5)
+
+    -- render_input_debug(Input)
 end

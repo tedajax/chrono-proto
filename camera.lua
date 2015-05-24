@@ -3,7 +3,7 @@ function lerp(a, b, t)
 end
 
 function create_camera(x, y)
-    camera = {}
+    local camera = {}
     camera.position = { x = x or 0, y = y or 0}
     camera.rotation = 0
     camera.zoom = 1
@@ -45,7 +45,7 @@ function create_camera(x, y)
 end
 
 function create_camera_controller(camera)
-    controller = {}
+    local controller = {}
     controller.camera = camera
     controller.target = nil
     controller.limits = { x = 32, y = 32 }

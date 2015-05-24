@@ -44,9 +44,12 @@ function create_player(x, y)
         if self.position.y < -self.limits.y then self.position.y = -self.limits.y end
         if self.position.y > self.limits.y then self.position.y = self.limits.y end
 
-        self.orientation = math.deg(math.atan2(self:getAxis("vlook"), self:getAxis("hlook")))
+        local vlook, hlook = self:getAxis("vlook"), self:getAxis("hlook")
+        if vlook ~= 0 or hlook ~= 0 then
+            self.orientation = math.deg(math.atan2(self:getAxis("vlook"), self:getAxis("hlook")))
+        end
 
-        if Input:getButton("fire") then
+        if self.input.buttons.fire then
             if self.fire_timer <= 0 then
                 local rad = math.rad(self.orientation)
                 local bx = math.cos(rad) * self.radius + self.position.x
@@ -81,35 +84,31 @@ function create_player(x, y)
 end
 
 function create_player_controller(player)
-    controller = {}
+    local controller = {}
     controller.player = player
     controller.player.controller = controller
 
-    controller.reset = function()
+    controller.reset = function(self)
     end
 
-    controller.update = function(dt)
-        player.input.buttons.fire = Input:getButton("fire")
-        player.input.axes.horizontal = Input:getAxis("horizontal")
-        player.input.axes.vertical = Input:getAxis("vertical")
-
-        local mousex, mousey = love.mouse.getPosition()
-        mousex = mousex / SCREEN_WIDTH * 2 - 1
-        mousey = mousey / SCREEN_HEIGHT * 2 - 1
-        player.input.axes.hlook = mousex
-        player.input.axes.vlook = mousey
+    controller.update = function(self, dt)
+        self.player.input.buttons.fire = Input:getButtonDown ("fire")
+        self.player.input.axes.horizontal = Input:getAxisValue("horizontal")
+        self.player.input.axes.vertical = Input:getAxisValue("vertical") * -1
+        self.player.input.axes.hlook = Input:getAxisValue("hlook")
+        self.player.input.axes.vlook = Input:getAxisValue("vlook") * -1
     end
 
     return controller
 end
 
 function create_player_recording_controller(player, recording)
-    controller = {}
+    local controller = {}
     controller.player = player
     controller.player.controller = controller
     controller.recording = recording
 
-    controller.action_player = create_action_player(recording, controller)
+    controller.action_player = create_recording_player(recording)
 
     controller.buttons = {}
     controller.buttons.left = false
@@ -119,43 +118,19 @@ function create_player_recording_controller(player, recording)
     controller.buttons.fire = false
 
     controller.reset = function(self)
-        self.action_player:start()
-    end
-
-    controller.start = function(self)
-        self.action_player:start()
+        self.action_player:reset()
     end
 
     controller.update = function(self, dt)
         self.action_player:update(dt)
 
-        local hmove, vmove = 0, 0
-        if self.buttons.left then hmove = hmove - 1 end
-        if self.buttons.right then print("right"); hmove = hmove + 1 end
-        if self.buttons.up then vmove = vmove - 1 end
-        if self.buttons.down then vmove = vmove + 1 end
+        local snapshot = self.action_player:getSnapshot()
 
-        self.player.input.axes.horizontal = hmove
-        self.player.input.axes.vertical = vmove
-        self.player.input.buttons.fire = self.buttons.fire
-    end
+        for k, v in pairs(snapshot) do print(k) end
 
-    controller.receive_action = function(self, action)
-        if action.action_type == Action.MOVE_LEFT then
-            self.buttons.left = action.state
-        elseif action.action_type == Action.MOVE_RIGHT then
-            self.buttons.right = action.state
-        elseif action.action_type == Action.MOVE_UP then
-            self.buttons.up = action.state
-        elseif action.action_type == Action.MOVE_DOWN then
-            self.buttons.down = action.state
-        elseif action.action_type == Action.FIRE then
-            self.buttons.fire = action.state
-        elseif action.action_type == Action.STOP then
-            for b, s in pairs(self.buttons) do
-                self.buttons[b] = false
-            end
-        end
+        --self.player.input.buttons.fire = snapshot.buttons.fire
+        self.player.input.axes.horizontal = snapshot.axes.horizontal
+        self.player.input.axes.vertical = snapshot.axes.vertical
     end
 
     return controller

@@ -5,7 +5,7 @@ BulletType = {
 }
 
 function create_bullet(index)
-    bullet = {}
+    local bullet = {}
     bullet.position = { x = 0, y = 0 }
     bullet.type = BulletType.UNKNOWN
     bullet.speed = 1000
@@ -54,7 +54,7 @@ function create_bullet(index)
 end
 
 function create_bullet_manager(capacity)
-    manager = {}
+    local manager = {}
     manager.bullets = {}
     manager.free_indices = {}
     manager.capacity = capacity

@@ -16,7 +16,7 @@ function copy_action(action)
 end
 
 function create_action_recorder()
-    recorder = {}
+    local recorder = {}
 
     recorder.timestamp = 0
     recorder.actions = {}
