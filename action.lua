@@ -7,6 +7,14 @@ Action = {
     STOP = 5
 }
 
+function copy_action(action)
+    return {
+        action_type = action.action_type,
+        state = action.state,
+        timestamp = action.timestamp
+    }
+end
+
 function create_action_recorder()
     recorder = {}
 
@@ -15,7 +23,7 @@ function create_action_recorder()
     recorder.actions.count = 0
 
     recorder.update = function(self, dt)
-        self.timestamp += dt
+        self.timestamp = self.timestamp + dt
     end
 
     recorder.add_action = function(self, action_type, state)
@@ -33,12 +41,17 @@ function create_action_recorder()
 end
 
 function create_action_player(recorder, receiver)
-    player = {}
+    local player = {}
 
     player.timestamp = 0
     player.timescale = 0
-    player.actions = recorder.actions
+    player.actions = {}
     player.current_action = 0
+
+    for i, v in ipairs(recorder.actions) do
+        player.actions[i - 1] = copy_action(v)
+    end
+    player.actions.count = recorder.actions.count
 
     -- Receiver must contain following functions
     -- receive_action(self, action)

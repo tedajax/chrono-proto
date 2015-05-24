@@ -2,6 +2,7 @@ require 'camera'
 require 'bullet'
 require 'player'
 require 'input'
+require 'action'
 
 function on_button_changed(name, state)
     if name == "fire" then
@@ -21,6 +22,7 @@ function on_axis_changed(name, value)
         a2 = Action.MOVE_UP
     end
 
+    print("value: "..value)
     if value > 0 then
         Recorder:add_action(a1, true)
         Recorder:add_action(a2, false)
@@ -40,7 +42,7 @@ function love.load(arg)
 
     player = create_player(0, 0)
     player_controller = create_player_controller(player)
-    Recorder = create_action_Recorder()
+    Recorder = create_action_recorder()
 
     recorded_players = {}
 
@@ -62,6 +64,9 @@ function love.keypressed(key, is_repeat)
     elseif key == "r" then
         local recorded = create_player(0, 0)
         table.insert(recorded_players, recorded)
+        local recorded_controller = create_player_recording_controller(recorded, Recorder)
+        recorded_controller:start()
+        player:reset()
     end
 end
 
@@ -69,6 +74,9 @@ function love.update(dt)
     Recorder:update(dt)
     Input:update(dt)
     player:update(dt)
+    for i, p in ipairs(recorded_players) do
+        p:update(dt)
+    end
     Bullets:update(dt)
     CameraController:update(dt)
 end
@@ -96,6 +104,9 @@ function love.draw(dt)
     render_background(World.Width, World.Height, 10)
 
     player:render(dt)
+    for i, p in ipairs(recorded_players) do
+        p:render(dt)
+    end
     Bullets:render(dt)
     Camera:pop()
 
