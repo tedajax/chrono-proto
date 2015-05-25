@@ -8,8 +8,13 @@ function create_recording()
         self.timestamp = self.timestamp + dt
     end
 
-    recording.add_snapshot = function(self, snapshot)
-        snapshot.timestamp = self.timestamp
+    recording.add_snapshot = function(self, position, orientation, is_firing)
+        local snapshot = {
+            position = { x = position.x, y = position.y },
+            orientation = orientation,
+            is_firing = is_firing,
+            timestamp = self.timestamp
+        }
         self.snapshots[self.snapshots.count] = snapshot
         self.snapshots.count = self.snapshots.count + 1
     end
@@ -46,8 +51,7 @@ function create_recording_player(recording)
         if self.current_index < self.snapshots.count then
             return self.snapshots[self.current_index]
         else
-            print(self.snapshots.count)
-            return Input.EMPTY
+            return nil
         end
     end
 

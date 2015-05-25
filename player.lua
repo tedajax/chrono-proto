@@ -4,23 +4,10 @@ function create_player(x, y)
     player.orientation = 0
     player.radius = 16
     player.speed = 300
-    player.fire_delay = 0.1
+    player.fire_delay = 0.03
     player.fire_timer = 0
     player.is_firing = false
     player.limits = { x = World.Width / 2 - player.radius, y = World.Height / 2 - player.radius }
-
-    player.input = {}
-    player.input.buttons = {}
-    player.input.axes = {}
-
-    player.input.buttons.fire = false
-    player.input.axes.horizontal = 0
-    player.input.axes.vertical = 0
-    player.input.axes.hlook = 0
-    player.input.axes.vlook = 0
-
-    player.getButton = function(self, name) return player.input.buttons[name] end
-    player.getAxis = function(self, name) return player.input.axes[name] end
 
     player.controller = nil
 
@@ -33,34 +20,31 @@ function create_player(x, y)
     player.update = function(self, dt)
         if self.controller ~= nil then self.controller:update(dt) end
 
-        local movex = self:getAxis("horizontal") * self.speed * dt
-        local movey = -self:getAxis("vertical") * self.speed * dt
+        self:enforce_boundaries()
 
-        self.position.x = self.position.x + movex
-        self.position.y = self.position.y + movey
+        if self.is_firing then
+            self:fire(self.orientation, dt)
+        else
+            self.fire_timer = 0
+        end
+    end
 
+    player.enforce_boundaries = function(self)
         if self.position.x < -self.limits.x then self.position.x = -self.limits.x end
         if self.position.x > self.limits.x then self.position.x = self.limits.x end
         if self.position.y < -self.limits.y then self.position.y = -self.limits.y end
         if self.position.y > self.limits.y then self.position.y = self.limits.y end
+    end
 
-        local vlook, hlook = -self:getAxis("vlook"), self:getAxis("hlook")
-        if vlook ~= 0 or hlook ~= 0 then
-            self.orientation = math.deg(math.atan2(vlook, hlook))
-        end
-
-        if self.input.buttons.fire then
-            if self.fire_timer <= 0 then
-                local rad = math.rad(self.orientation)
-                local bx = math.cos(rad) * self.radius + self.position.x
-                local by = math.sin(rad) * self.radius + self.position.y
-                Bullets:add(BulletType.PLAYER, bx, by, self.orientation)
-                self.fire_timer = self.fire_delay
-            else
-                self.fire_timer = self.fire_timer - dt
-            end
+    player.fire = function(self, angle, dt)
+        if self.fire_timer <= 0 then
+            local rad = math.rad(angle)
+            local bx = math.cos(rad) * self.radius + self.position.x
+            local by = math.sin(rad) * self.radius + self.position.y
+            Bullets:add(BulletType.PLAYER, bx, by, angle)
+            self.fire_timer = self.fire_delay
         else
-            self.fire_timer = 0
+            self.fire_timer = self.fire_timer - dt
         end
     end
 
@@ -92,11 +76,18 @@ function create_player_controller(player)
     end
 
     controller.update = function(self, dt)
-        self.player.input.buttons.fire = Input:getButtonDown ("fire")
-        self.player.input.axes.horizontal = Input:getAxisValue("horizontal")
-        self.player.input.axes.vertical = Input:getAxisValue("vertical")
-        self.player.input.axes.hlook = Input:getAxisValue("hlook")
-        self.player.input.axes.vlook = Input:getAxisValue("vlook")
+        local movex = Input:getAxisValue("horizontal") * self.player.speed * dt
+        local movey = -Input:getAxisValue("vertical") * self.player.speed * dt
+
+        self.player.position.x = self.player.position.x + movex
+        self.player.position.y = self.player.position.y + movey
+
+        local vlook, hlook = -Input:getAxisValue("vlook"), Input:getAxisValue("hlook")
+        if vlook ~= 0 or hlook ~= 0 then
+            self.player.orientation = math.deg(math.atan2(vlook, hlook))
+        end
+
+        self.player.is_firing = Input:getButtonDown("fire")
     end
 
     return controller
@@ -126,11 +117,12 @@ function create_player_recording_controller(player, recording)
 
         local snapshot = self.action_player:getSnapshot()
 
-        self.player.input.buttons.fire = snapshot.buttons.fire
-        self.player.input.axes.horizontal = snapshot.axes.horizontal
-        self.player.input.axes.vertical = snapshot.axes.vertical
-        self.player.input.axes.hlook = snapshot.axes.hlook
-        self.player.input.axes.vlook = snapshot.axes.vlook
+        if snapshot == nil then return end
+
+        self.player.position.x = snapshot.position.x
+        self.player.position.y = snapshot.position.y
+        self.player.orientation = snapshot.orientation
+        self.player.is_firing = snapshot.is_firing
     end
 
     return controller

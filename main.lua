@@ -18,7 +18,7 @@ function love.load(arg)
     Input = init_input()
     Input.button_changed = on_button_changed
     Input.axis_changed = on_axis_changed
-    Bullets = create_bullet_manager(100)
+    Bullets = create_bullet_manager(1000)
     Camera = create_camera()
     Camera:look_at(0, 0)
     CameraController = create_camera_controller(Camera)
@@ -31,6 +31,7 @@ function love.keypressed(key, is_repeat)
     if key == "escape" then
         love.event.quit()
     elseif key == "r" then
+        Recorder:add_snapshot(player.position, player.orientation, false)
         local recorded = create_player(0, 0)
         for i, p in ipairs(RecordedPlayers) do
             p:reset()
@@ -45,11 +46,10 @@ end
 function love.update(dt)
     Recorder:update(dt)
     Input:update(dt)
-    if Input.changed_this_frame then
-        Recorder:add_snapshot(create_input_snapshot(Input))
-    end
-
     player:update(dt)
+
+    Recorder:add_snapshot(player.position, player.orientation, player.is_firing)
+
     for i, p in ipairs(RecordedPlayers) do
         p:update(dt)
     end
