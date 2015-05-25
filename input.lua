@@ -229,7 +229,6 @@ function create_empty_input_snapshot(input)
     end
 
     for _, a in pairs(input.axes) do
-        print(a.name)
         snapshot.axes[a.name] = 0
     end
 

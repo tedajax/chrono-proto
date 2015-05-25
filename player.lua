@@ -34,7 +34,7 @@ function create_player(x, y)
         if self.controller ~= nil then self.controller:update(dt) end
 
         local movex = self:getAxis("horizontal") * self.speed * dt
-        local movey = self:getAxis("vertical") * self.speed * dt
+        local movey = -self:getAxis("vertical") * self.speed * dt
 
         self.position.x = self.position.x + movex
         self.position.y = self.position.y + movey
@@ -44,9 +44,9 @@ function create_player(x, y)
         if self.position.y < -self.limits.y then self.position.y = -self.limits.y end
         if self.position.y > self.limits.y then self.position.y = self.limits.y end
 
-        local vlook, hlook = self:getAxis("vlook"), self:getAxis("hlook")
+        local vlook, hlook = -self:getAxis("vlook"), self:getAxis("hlook")
         if vlook ~= 0 or hlook ~= 0 then
-            self.orientation = math.deg(math.atan2(self:getAxis("vlook"), self:getAxis("hlook")))
+            self.orientation = math.deg(math.atan2(vlook, hlook))
         end
 
         if self.input.buttons.fire then
@@ -94,9 +94,9 @@ function create_player_controller(player)
     controller.update = function(self, dt)
         self.player.input.buttons.fire = Input:getButtonDown ("fire")
         self.player.input.axes.horizontal = Input:getAxisValue("horizontal")
-        self.player.input.axes.vertical = Input:getAxisValue("vertical") * -1
+        self.player.input.axes.vertical = Input:getAxisValue("vertical")
         self.player.input.axes.hlook = Input:getAxisValue("hlook")
-        self.player.input.axes.vlook = Input:getAxisValue("vlook") * -1
+        self.player.input.axes.vlook = Input:getAxisValue("vlook")
     end
 
     return controller
@@ -126,11 +126,11 @@ function create_player_recording_controller(player, recording)
 
         local snapshot = self.action_player:getSnapshot()
 
-        for k, v in pairs(snapshot) do print(k) end
-
-        --self.player.input.buttons.fire = snapshot.buttons.fire
+        self.player.input.buttons.fire = snapshot.buttons.fire
         self.player.input.axes.horizontal = snapshot.axes.horizontal
         self.player.input.axes.vertical = snapshot.axes.vertical
+        self.player.input.axes.hlook = snapshot.axes.hlook
+        self.player.input.axes.vlook = snapshot.axes.vlook
     end
 
     return controller
