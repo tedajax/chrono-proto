@@ -1,5 +1,6 @@
 require 'camera'
 require 'bullet'
+require 'enemy'
 require 'player'
 require 'input'
 require 'recording'
@@ -19,8 +20,16 @@ function love.load(arg)
     -- RecordedPlayers = {}
 
     Input = init_input()
-    Bullets = create_bullet_manager(100)
+    Bullets = create_bullet_manager(1000)
     
+    Enemies = {}
+    for i = 1, 25 do
+        local test_enemy = create_enemy((i - 12) * 50, 500)
+        local test_enemy_seeker = create_enemy_seeker_controller(test_enemy)
+        test_enemy_seeker:set_target(player.position)
+        table.insert(Enemies, test_enemy)
+    end
+
     Camera = create_camera()
     Camera:look_at(0, 0)
     CameraController = create_camera_controller(Camera)
@@ -55,11 +64,11 @@ function end_contact(a, b, coll)
 end
 
 function pre_solve(a, b, coll)
-    print("pre solve")
+    -- print("pre solve")
 end
 
 function post_solve(a, b, coll, normal1, tangent1, normal2, tangent2)
-    print("post solve")
+    -- print("post solve")
 end
 
 function love.update(dt)
@@ -68,6 +77,10 @@ function love.update(dt)
     -- Recorder:update(dt)
     Input:update(dt)
     player:update(dt)
+
+    for i, e in ipairs(Enemies) do
+        e:update(dt)
+    end
 
     -- Recorder:add_snapshot(player.position, player.orientation, player.is_firing)
 
@@ -104,6 +117,11 @@ function love.draw(dt)
     -- for i, p in ipairs(RecordedPlayers) do
     --     p:render(dt)
     -- end
+
+    for i, e in ipairs(Enemies) do
+        e:render(dt)
+    end
+
     Bullets:render(dt)
     Camera:pop()
 
