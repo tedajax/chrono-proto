@@ -6,25 +6,28 @@ require 'recording'
 
 function love.load(arg)
     World = {}
+    love.physics.setMeter(64)
+    World.physics = love.physics.newWorld(0, 0, true)
+    World.physics:setCallbacks(begin_contact, end_contact, pre_solve, post_solve)
     World.Width = 1000
     World.Height = 1000
 
     player = create_player(0, 0)
     player_controller = create_player_controller(player)
-    Recorder = create_recording()
+    -- Recorder = create_recording()
 
-    RecordedPlayers = {}
+    -- RecordedPlayers = {}
 
     Input = init_input()
-    Input.button_changed = on_button_changed
-    Input.axis_changed = on_axis_changed
-    Bullets = create_bullet_manager(1000)
+    Bullets = create_bullet_manager(100)
+    
     Camera = create_camera()
     Camera:look_at(0, 0)
     CameraController = create_camera_controller(Camera)
     CameraController.target = player
 
     love.graphics.setBackgroundColor(22, 22, 22)
+
 end
 
 function love.keypressed(key, is_repeat)
@@ -43,16 +46,34 @@ function love.keypressed(key, is_repeat)
     end
 end
 
+function begin_contact(a, b, coll)
+    print("begin contact")
+end
+
+function end_contact(a, b, coll)
+    print("end contact")
+end
+
+function pre_solve(a, b, coll)
+    print("pre solve")
+end
+
+function post_solve(a, b, coll, normal1, tangent1, normal2, tangent2)
+    print("post solve")
+end
+
 function love.update(dt)
-    Recorder:update(dt)
+    World.physics:update(dt)
+
+    -- Recorder:update(dt)
     Input:update(dt)
     player:update(dt)
 
-    Recorder:add_snapshot(player.position, player.orientation, player.is_firing)
+    -- Recorder:add_snapshot(player.position, player.orientation, player.is_firing)
 
-    for i, p in ipairs(RecordedPlayers) do
-        p:update(dt)
-    end
+    -- for i, p in ipairs(RecordedPlayers) do
+    --     p:update(dt)
+    -- end
     Bullets:update(dt)
     CameraController:update(dt)
 end
@@ -80,9 +101,9 @@ function love.draw(dt)
     render_background(World.Width, World.Height, 10)
 
     player:render(dt)
-    for i, p in ipairs(RecordedPlayers) do
-        p:render(dt)
-    end
+    -- for i, p in ipairs(RecordedPlayers) do
+    --     p:render(dt)
+    -- end
     Bullets:render(dt)
     Camera:pop()
 

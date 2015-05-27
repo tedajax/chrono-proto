@@ -4,10 +4,15 @@ function create_player(x, y)
     player.orientation = 0
     player.radius = 16
     player.speed = 300
-    player.fire_delay = 0.03
+    player.fire_delay = 0.2
     player.fire_timer = 0
     player.is_firing = false
     player.limits = { x = World.Width / 2 - player.radius, y = World.Height / 2 - player.radius }
+
+    player.body = love.physics.newBody(World.physics, player.position.x, player.position.y, "kinematic")
+    player.shape = love.physics.newCircleShape(player.radius)
+    player.fixture = love.physics.newFixture(player.body, player.shape)
+    player.body:setUserData("Player")
 
     player.controller = nil
 
@@ -21,6 +26,9 @@ function create_player(x, y)
         if self.controller ~= nil then self.controller:update(dt) end
 
         self:enforce_boundaries()
+
+        self.body:setX(self.position.x)
+        self.body:setY(self.position.y)
 
         if self.is_firing then
             self:fire(self.orientation, dt)
@@ -38,10 +46,7 @@ function create_player(x, y)
 
     player.fire = function(self, angle, dt)
         if self.fire_timer <= 0 then
-            local rad = math.rad(angle)
-            local bx = math.cos(rad) * self.radius + self.position.x
-            local by = math.sin(rad) * self.radius + self.position.y
-            Bullets:add(BulletType.PLAYER, bx, by, angle)
+            Bullets:add(BulletType.PLAYER, self.position.x, self.position.y, self.radius, angle)
             self.fire_timer = self.fire_delay
         else
             self.fire_timer = self.fire_timer - dt

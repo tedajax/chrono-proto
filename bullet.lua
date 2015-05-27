@@ -8,7 +8,7 @@ function create_bullet(index)
     local bullet = {}
     bullet.position = { x = 0, y = 0 }
     bullet.type = BulletType.UNKNOWN
-    bullet.speed = 1000
+    bullet.speed = 10
     bullet.angle = 0
     bullet.active = false
     bullet.index = index
@@ -16,28 +16,48 @@ function create_bullet(index)
     bullet.radius = 4
     bullet.limits = { x = World.Width / 2 - bullet.radius, y = World.Height / 2 - bullet.radius }
 
-    bullet.activate = function(self, type, x, y, angle)
+    bullet.body = love.physics.newBody(World.physics, bullet.position.x, bullet.position.y, "dynamic")
+    bullet.body:setMass(1)
+    bullet.body:setActive(false)
+    bullet.shape = love.physics.newCircleShape(bullet.radius)
+    bullet.fixture = love.physics.newFixture(bullet.body, bullet.shape)
+    bullet.body:setUserData("Bullet")
+
+    bullet.activate = function(self, type, x, y, radius, angle)
         self.type = type
-        self.position.x = x
-        self.position.y = y
+        local radians = math.rad(angle)
+        local r = radius + self.radius + 1
+        local bx = math.cos(radians) * r + x
+        local by = math.sin(radians) * r + y
+        self.body:setActive(true)
+        self.body:setX(bx)
+        self.body:setY(by)
         self.angle = angle
+        local ix = math.cos(math.rad(self.angle)) * self.speed
+        local iy = math.sin(math.rad(self.angle)) * self.speed
+        self.body:applyLinearImpulse(ix, iy)
         self.active = true
         self.destroy_flag = false
     end
 
     bullet.reset = function(self)
         self.type = BulletType.UNKNOWN
-        self.position.x = 0
-        self.position.y = 0
+        self.body:setX(World.Width + 100)
+        self.body:setY(World.Height + 100)
+        self.body:setLinearVelocity(0, 0)
+        self.body:setActive(false)
         self.angle = 0
         self.active = false
         self.destroy_flag = false
     end
 
     bullet.update = function(self, dt)
-        local velocity = { x = math.cos(math.rad(self.angle)), y = math.sin(math.rad(self.angle)) }
-        self.position.x = self.position.x + velocity.x * self.speed * dt
-        self.position.y = self.position.y + velocity.y * self.speed * dt
+        -- local velocity = { x = math.cos(math.rad(self.angle)), y = math.sin(math.rad(self.angle)) }
+        -- self.position.x = self.position.x + velocity.x * self.speed * dt
+        -- self.position.y = self.position.y + velocity.y * self.speed * dt
+
+        self.position.x = self.body:getX()
+        self.position.y = self.body:getY()
 
         if self.position.x < -self.limits.x or self.position.x > self.limits.x or
            self.position.y < -self.limits.y or self.position.y > self.limits.y then
@@ -76,9 +96,9 @@ function create_bullet_manager(capacity)
         self.free_indices[self.free_head] = index
     end
 
-    manager.add = function(self, type, x, y, angle)
+    manager.add = function(self, type, x, y, r, angle)
         local index = self:pop_index()
-        self.bullets[index]:activate(type, x, y, angle)
+        self.bullets[index]:activate(type, x, y, r, angle)
     end
 
     manager.remove = function(self, bullet)
