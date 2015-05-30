@@ -5,6 +5,25 @@ require 'player'
 require 'input'
 require 'recording'
 
+function tostrnil(t)
+    if t == nil then
+        return "nil"
+    else
+        return tostring(t)
+    end
+end
+
+ColliderTag = {
+    Player = 0,
+    Bullet = 1,
+    Enemy = 2,
+    Environment = 3,
+}
+
+function create_collider_tag(tag, handle)
+    return { tag = ColliderTag[tag], handle = handle }
+end
+
 function love.load(arg)
     World = {}
     love.physics.setMeter(64)
@@ -22,12 +41,10 @@ function love.load(arg)
     Input = init_input()
     Bullets = create_bullet_manager(1000)
     
-    Enemies = {}
+    Enemies = create_enemy_manager(100)
     for i = 1, 25 do
-        local test_enemy = create_enemy((i - 12) * 50, 500)
-        local test_enemy_seeker = create_enemy_seeker_controller(test_enemy)
-        test_enemy_seeker:set_target(player.position)
-        table.insert(Enemies, test_enemy)
+        local e = Enemies:add((i - 12) * 50, 500, create_enemy_seeker_controller())
+        e.controller:set_target(player.position)
     end
 
     Camera = create_camera()
@@ -56,11 +73,20 @@ function love.keypressed(key, is_repeat)
 end
 
 function begin_contact(a, b, coll)
-    print("begin contact")
+    local data1 = a:getUserData()
+    local data2 = b:getUserData()
+
+    print("Data 1: "..tostrnil(data1))
+    print("Data 2: "..tostrnil(data2))
+
+    if data1 ~= nil and data1.tag == ColliderTag.Bullet then
+        Bullets:on_collision_begin(data1.handle, b, coll)
+    elseif data2 ~= nil and data2.tag == ColliderTag.Bullet then
+        Bullets:on_collision_begin(data2.handle, a, coll)
+    end
 end
 
 function end_contact(a, b, coll)
-    print("end contact")
 end
 
 function pre_solve(a, b, coll)
@@ -78,9 +104,7 @@ function love.update(dt)
     Input:update(dt)
     player:update(dt)
 
-    for i, e in ipairs(Enemies) do
-        e:update(dt)
-    end
+    Enemies:update(dt)
 
     -- Recorder:add_snapshot(player.position, player.orientation, player.is_firing)
 
@@ -118,10 +142,7 @@ function love.draw(dt)
     --     p:render(dt)
     -- end
 
-    for i, e in ipairs(Enemies) do
-        e:render(dt)
-    end
-
+    Enemies:render(dt)
     Bullets:render(dt)
     Camera:pop()
 

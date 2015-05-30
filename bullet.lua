@@ -1,17 +1,19 @@
+require 'objectpool'
+
 BulletType = {
     UNKNOWN = 0,
     PLAYER = 1,
     ENEMY = 2
 }
 
-function create_bullet(index)
+function create_bullet(handle)
     local bullet = {}
     bullet.position = { x = 0, y = 0 }
     bullet.type = BulletType.UNKNOWN
     bullet.speed = 10
     bullet.angle = 0
     bullet.active = false
-    bullet.index = index
+    bullet.handle = handle
     bullet.destroy_flag = false
     bullet.radius = 4
     bullet.limits = { x = World.Width / 2 - bullet.radius, y = World.Height / 2 - bullet.radius }
@@ -21,7 +23,8 @@ function create_bullet(index)
     bullet.body:setActive(false)
     bullet.shape = love.physics.newCircleShape(bullet.radius)
     bullet.fixture = love.physics.newFixture(bullet.body, bullet.shape)
-    bullet.body:setUserData("Bullet")
+    -- bullet.fixture:setFilterData(0, 1, 0)
+    bullet.fixture:setUserData(create_collider_tag("Bullet", handle))
 
     bullet.activate = function(self, type, x, y, radius, angle)
         self.type = type
@@ -42,8 +45,6 @@ function create_bullet(index)
 
     bullet.reset = function(self)
         self.type = BulletType.UNKNOWN
-        self.body:setX(World.Width + 100)
-        self.body:setY(World.Height + 100)
         self.body:setLinearVelocity(0, 0)
         self.body:setActive(false)
         self.angle = 0
@@ -75,57 +76,27 @@ end
 
 function create_bullet_manager(capacity)
     local manager = {}
-    manager.bullets = {}
-    manager.free_indices = {}
-    manager.capacity = capacity
-    for i = 1, capacity do
-        manager.free_indices[i] = i
-        manager.bullets[i] = create_bullet(i)
-    end
-    manager.free_head = capacity
-
-    manager.pop_index = function(self)
-        assert(self.free_head > 1, "No more free spaces, increase capacity.")
-        local result = self.free_indices[self.free_head]
-        self.free_head = self.free_head - 1
-        return result
-    end
-
-    manager.push_index = function(self, index)
-        self.free_head = self.free_head + 1
-        self.free_indices[self.free_head] = index
-    end
+    manager.pool = create_object_pool(create_bullet, capacity)
 
     manager.add = function(self, type, x, y, r, angle)
-        local index = self:pop_index()
-        self.bullets[index]:activate(type, x, y, r, angle)
+        return self.pool:add(type, x, y, r, angle)
     end
 
     manager.remove = function(self, bullet)
-        self.bullets[bullet.index]:reset()
-        self:push_index(bullet.index)
+        self.pool:remove(bullet)
     end
 
     manager.update = function(self, dt)
-        for i = 1, self.capacity do
-            if self.bullets[i].active and self.bullets[i].destroy_flag then
-                self:remove(self.bullets[i])
-            end
-        end
-
-        for i = 1, self.capacity do
-            if self.bullets[i].active then
-                self.bullets[i]:update(dt)
-            end
-        end
+        self.pool:remove_flagged()
+        self.pool:execute_obj_func("update", dt)
     end
 
     manager.render = function(self, dt)
-        for i = 1, self.capacity do
-            if self.bullets[i].active then
-                self.bullets[i]:render(dt)
-            end
-        end
+        self.pool:execute_obj_func("render", dt)
+    end
+
+    manager.on_collision_begin = function(self, handle, other, coll)
+        self.pool.objects[handle].destroy_flag = true
     end
 
     return manager
