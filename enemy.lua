@@ -1,4 +1,5 @@
 require 'objectpool'
+require 'health'
 
 function create_enemy(handle)
     local enemy = {}
@@ -13,12 +14,15 @@ function create_enemy(handle)
     enemy.height = 32
     enemy.speed = 200
 
+    -- physics
     enemy.body = love.physics.newBody(World.physics, enemy.position.x, enemy.position.y, "kinematic")
     enemy.body:setActive(false)
     enemy.shape = love.physics.newRectangleShape(enemy.width, enemy.height)
     enemy.fixture = love.physics.newFixture(enemy.body, enemy.shape)
     -- enemy.fixture:setFilterData(-2, 1, 0)
     enemy.fixture:setUserData(create_collider_tag("Enemy", enemy.handle))
+
+    enemy.health = create_health(10)
 
     enemy.controller = nil
 
@@ -32,6 +36,7 @@ function create_enemy(handle)
         self.controller.enemy = self
         self.active = true
         self.destroy_flag = false
+        self.health:respawn()
     end
 
     enemy.reset = function(self)
@@ -43,6 +48,10 @@ function create_enemy(handle)
 
     enemy.update = function(self, dt)
         if self.controller ~= nil then self.controller:update(dt) end
+
+        self.health:tick(dt)
+
+        if self.health.is_dead then self.destroy_flag = true end
 
         self.body:setX(self.position.x)
         self.body:setY(self.position.y)
@@ -103,6 +112,19 @@ function create_enemy_manager(capacity)
 
     manager.render = function(self, dt)
         self.pool:execute_obj_func("render", dt)
+    end
+
+    manager.get_enemy = function(self, handle)
+        return self.pool.objects[handle]
+    end
+
+    manager.on_collision_begin = function(self, handle, other, coll)
+        local data = other:getUserData()
+
+        if data.tag == ColliderTag.Bullet then
+            local enemy = self:get_enemy(handle)
+            enemy.health:damage(2)
+        end
     end
 
     return manager

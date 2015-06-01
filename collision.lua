@@ -13,13 +13,15 @@ function on_begin_contact(a, b, coll)
     local data1 = a:getUserData()
     local data2 = b:getUserData()
 
-    print("Data 1: "..tostrnil(data1))
-    print("Data 2: "..tostrnil(data2))
+    handle_begin_contact(data1, b, coll)
+    handle_begin_contact(data2, a, coll)
+end
 
-    if data1 ~= nil and data1.tag == ColliderTag.Bullet then
-        Bullets:on_collision_begin(data1.handle, b, coll)
-    elseif data2 ~= nil and data2.tag == ColliderTag.Bullet then
-        Bullets:on_collision_begin(data2.handle, a, coll)
+function handle_begin_contact(data, other, coll)
+    if data.tag == ColliderTag.Bullet then
+        Bullets:on_collision_begin(data.handle, other, coll)
+    elseif data.tag == ColliderTag.Enemy then
+        Enemies:on_collision_begin(data.handle, other, coll)
     end
 end
 
