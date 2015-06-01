@@ -4,7 +4,7 @@ function create_player(x, y)
     player.orientation = 0
     player.radius = 16
     player.speed = 300
-    player.fire_delay = 0.01
+    player.fire_delay = 0.05
     player.fire_timer = 0
     player.is_firing = false
     player.limits = { x = World.Width / 2 - player.radius, y = World.Height / 2 - player.radius }

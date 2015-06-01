@@ -4,6 +4,7 @@ require 'enemy'
 require 'player'
 require 'input'
 require 'recording'
+require 'collision'
 
 function tostrnil(t)
     if t == nil then
@@ -13,22 +14,11 @@ function tostrnil(t)
     end
 end
 
-ColliderTag = {
-    Player = 0,
-    Bullet = 1,
-    Enemy = 2,
-    Environment = 3,
-}
-
-function create_collider_tag(tag, handle)
-    return { tag = ColliderTag[tag], handle = handle }
-end
-
 function love.load(arg)
     World = {}
     love.physics.setMeter(64)
     World.physics = love.physics.newWorld(0, 0, true)
-    World.physics:setCallbacks(begin_contact, end_contact, pre_solve, post_solve)
+    World.physics:setCallbacks(on_begin_contact, on_end_contact, on_pre_solve, on_post_solve)
     World.Width = 1000
     World.Height = 1000
 
@@ -40,7 +30,7 @@ function love.load(arg)
 
     Input = init_input()
     Bullets = create_bullet_manager(1000)
-    
+
     Enemies = create_enemy_manager(100)
     for i = 1, 25 do
         local e = Enemies:add((i - 12) * 50, 500, create_enemy_seeker_controller())
@@ -70,31 +60,6 @@ function love.keypressed(key, is_repeat)
         Recorder:reset()
         player:reset()
     end
-end
-
-function begin_contact(a, b, coll)
-    local data1 = a:getUserData()
-    local data2 = b:getUserData()
-
-    print("Data 1: "..tostrnil(data1))
-    print("Data 2: "..tostrnil(data2))
-
-    if data1 ~= nil and data1.tag == ColliderTag.Bullet then
-        Bullets:on_collision_begin(data1.handle, b, coll)
-    elseif data2 ~= nil and data2.tag == ColliderTag.Bullet then
-        Bullets:on_collision_begin(data2.handle, a, coll)
-    end
-end
-
-function end_contact(a, b, coll)
-end
-
-function pre_solve(a, b, coll)
-    -- print("pre solve")
-end
-
-function post_solve(a, b, coll, normal1, tangent1, normal2, tangent2)
-    -- print("post solve")
 end
 
 function love.update(dt)
